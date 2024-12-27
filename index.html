@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="author" content="Musa Tshabalala" />
+        <meta name="description" content="Scatter Plot Graph" />
+        <link rel="stylesheet" href="styles.css" />
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <title>Scatter Plot Graph</title>
+    </head>
+    <body>
+        <div id="container">
+            <h1 id="title">Doping in Cycling</h1>
+            <div id="border">
+                <p><div id="red" class="circle"></div> Guilty for doping</p>
+                <p><div id="green" class="circle"></div>No doping allegation</p>
+            </div>
+        </div>
+        <script>
+           document.addEventListener('DOMContentLoaded', () => {
+
+            const scatterGraph =  async () => {
+                try {
+
+                    const screenWidth = window.innerWidth
+                    const height = 600;
+                    const width = 600;
+                    const padding = 50;
+            
+                    const container =  d3.select('#container');
+                    const tooltip = container
+                                    .append('div')
+                                    .attr('id', 'tooltip');
+
+                    const request = await fetch('https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/cyclist-data.json');
+
+                    if (!request.ok) {
+                        container
+                        .append('h1')
+                        .text(`Failed Due to Error: ${request.status}`)
+                        return
+                    };
+
+                    const data = await request.json();
+                    const years = data.map(el => el.Year);
+                    const seconds = data.map(el => el.Seconds);
+
+                    const formatTime = (totalSeconds) => {
+                        const minutes = Math.floor(totalSeconds / 60);
+                        const seconds = totalSeconds % 60;
+                        return `${minutes}:${seconds.toString().padStart(2, '0')}`
+                    };
+
+                    const scaleY = d3.scaleLinear()
+                                   .domain([d3.min(seconds), d3.max(seconds)])
+                                   .range([padding, height - padding]);
+
+                    const scaleX = d3.scaleLinear()
+                                     .domain([d3.min(years), d3.max(years)])
+                                     .range([padding , width - padding]);
+
+                    const yAxis = d3.axisLeft(scaleY)
+                                    .tickFormat(formatTime);
+
+                    const xAxis = d3.axisBottom(scaleX)
+                                    .tickFormat(d => d)
+                                    .ticks(8);
+
+            const svg = container
+                        .append('svg')
+                        .attr('width', width + 100)
+                        .attr('height', height)
+                        .style('padding', 10);
+
+                    svg
+                    .selectAll('circle')
+                    .data(data)
+                    .enter()
+                    .append('a')
+                    .attr('xlink:href', d => {
+                        if (d.URL) {
+                            return d.URL
+                        }
+                    })
+                    .attr('target', '_blank')
+                    .append('circle')
+                    .attr('class', 'dot')
+                    .style('opacity', '50%')
+                    .attr('fill', d => !d.Doping ? 'green' : 'red')
+                    .attr('cx', (d, i) => scaleX(d.Year))
+                    .attr('cy', d => scaleY(d.Seconds))
+                    .attr('r', 5)
+                    .attr('data-xvalue', d => d.Year)
+                    .attr('data-yvalue', d => d.Time)
+
+                    .on('mouseover', function (event, d)  {
+                        const years = d3.select(this).attr('data-xvalue');
+                        const time = d3.select(this).attr('data-yvalue');
+
+                        tooltip
+                        .style('display', 'block')
+                        .style('left', `${event.pageX + 20}px`)
+                        .style('top', `${event.pageY + 10}px`)
+                        .attr('data-xvalue', `${years}`)
+                        .attr('data-yvalue', `${time}`)
+                        .html(`${d.Name} <br> Nationality: ${d.Nationality} <br> Placed: #${d.Place} In ${time} Minutes <br> Year: ${years} <br> <br> ${d.Doping}`)
+                    })
+
+                    .on('mouseout', function () {
+                        tooltip
+                        .style('display', 'none')
+                    });
+
+                    svg
+                    .append('g')
+                    .attr('transform', `translate(0, ${height - padding})`)
+                    .attr('id', 'x-axis')
+                    .call(xAxis)
+                    .selectAll('text')
+                    .attr('fill', '#999')
+                    .style('font-size', '15');
+
+                    svg
+                    .append('g')
+                    .attr('transform', `translate(${padding}, 0)`)
+                    .attr('id', 'y-axis')
+                    .call(yAxis)
+                    .selectAll('text')
+                    .attr('fill', '#999')
+                    .style('font-size', '15');
+
+                }
+                catch(err) {
+                    console.log('Error', err)
+                }
+            }
+            scatterGraph()
+           })
+        </script>
+    </body>
+</html>
